@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::ltc_decoder::Sample;
 
 /// Contains the state of received half-bits and bits by ThresholdCrossDetector
@@ -11,6 +13,7 @@ enum BitDecoderState {
 }
 
 /// Return value possibilites for returning bits of the bit decoder
+#[derive(Debug)]
 pub(crate) enum BitVal {
     /// No bit detected after pushing last audio sample
     None,
@@ -23,15 +26,14 @@ pub(crate) enum BitVal {
 }
 
 /// Reads sample by sample, detects the heartbeat of bits in ltc stream and returns 0s and 1s
-pub(crate) struct BitDecoder<T: Sample> {
+pub(crate) struct BitDecoder<T: Sample + Debug> {
     /// ThresholdCrossDetector returns bits and half-bits.
     threshold_cross_detector: ThresholdCrossDetector<T>,
     /// State holds the current state of received bits and half-bits
     state: BitDecoderState,
 }
 
-
-impl<T: Sample> BitDecoder<T> {
+impl<T: Sample + Debug> BitDecoder<T> {
     /// Constructor
     pub(crate) fn new() -> Self {
         Self {
@@ -73,9 +75,7 @@ impl<T: Sample> BitDecoder<T> {
                         self.state = BitDecoderState::BitCompleted;
                         BitVal::False
                     }
-                    BitDecoderState::BitCompleted => {
-                        BitVal::False
-                    }
+                    BitDecoderState::BitCompleted => BitVal::False,
                     BitDecoderState::HalfBitReceived => {
                         // Expected a half-bit in the state of sync
                         BitVal::Invalid
@@ -85,7 +85,6 @@ impl<T: Sample> BitDecoder<T> {
         }
     }
 }
-
 
 /// When reading audio samples, the SampleBounds calculate what high and low means in the audio signal for detecting LTC
 struct SampleBounds<T: Sample> {
@@ -180,7 +179,6 @@ impl<T: Sample> SampleBounds<T> {
         self.received_count = 0;
     }
 }
-
 
 /// State of ThresholdCross of an audio signal if it is after
 /// half a bit (Short)
@@ -294,7 +292,6 @@ struct ThresholdCrossDetector<T: Sample> {
     state: ThresholdCrossState,
 }
 
-
 impl<T: Sample> ThresholdCrossDetector<T> {
     /// Constructor
     fn new() -> Self {
@@ -348,7 +345,6 @@ impl<T: Sample> ThresholdCrossDetector<T> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::ltc_decoder::bit_decoder::{SampleBounds, ThresholdCrossState};
@@ -377,7 +373,6 @@ mod tests {
         assert_eq!(b.threshold, 117);
         assert!(b.valid)
     }
-
 
     #[test]
     fn test_is_approx_half() {

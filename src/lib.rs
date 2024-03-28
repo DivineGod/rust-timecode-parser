@@ -1,11 +1,10 @@
-#![cfg_attr(not(test), no_std)]
 extern crate core;
 
 use core::fmt::{Debug, Display, Formatter};
 
-pub mod ltc_frame;
 #[cfg(feature = "decode_ltc")]
 pub mod ltc_decoder;
+pub mod ltc_frame;
 
 #[derive(PartialEq, Eq, Clone)]
 pub struct TimecodeFrame {
@@ -54,7 +53,11 @@ impl TimecodeFrame {
 #[cfg(feature = "debug")]
 impl Display for TimecodeFrame {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:02}:{:02}:{:02}:{:02} fps:{:#?}", self.hours, self.minutes, self.seconds, self.frames, self.frames_per_second)
+        write!(
+            f,
+            "{:02}:{:02}:{:02}:{:02} fps:{:#?}",
+            self.hours, self.minutes, self.seconds, self.frames, self.frames_per_second
+        )
     }
 }
 
@@ -66,16 +69,28 @@ impl Debug for TimecodeFrame {
 }
 
 impl TimecodeFrame {
-    pub fn new_from_duration(hours: u8, minutes: u8, seconds: u8, frames: u8, duration_for_frame_without_syncword_in_s: f32) -> Self {
+    pub fn new_from_duration(
+        hours: u8,
+        minutes: u8,
+        seconds: u8,
+        frames: u8,
+        duration_for_frame_in_s: f32,
+    ) -> Self {
         Self {
             hours,
             minutes,
             seconds,
             frames,
-            frames_per_second: FramesPerSecond::from_frame_duration_without_syncword_in_s(duration_for_frame_without_syncword_in_s),
+            frames_per_second: FramesPerSecond::from_frame_duration_in_s(duration_for_frame_in_s),
         }
     }
-    pub fn new(hours: u8, minutes: u8, seconds: u8, frames: u8, frames_per_second: FramesPerSecond) -> Self {
+    pub fn new(
+        hours: u8,
+        minutes: u8,
+        seconds: u8,
+        frames: u8,
+        frames_per_second: FramesPerSecond,
+    ) -> Self {
         Self {
             hours,
             minutes,
@@ -99,22 +114,42 @@ impl FramesPerSecond {
     const DURATION_TWENTY_FIVE_FULL_FRAME_IN_S: f32 = 0.04;
     const DURATION_TWENTY_FOUR_FULL_FRAME_IN_S: f32 = 0.041_666_66;
 
-    const DURATION_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S: f32 = Self::DURATION_TWENTY_FOUR_FULL_FRAME_IN_S * 64.0 / 80.0;
-    const DURATION_TWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S: f32 = Self::DURATION_TWENTY_FIVE_FULL_FRAME_IN_S * 64.0 / 80.0;
-    const DURATION_THIRTY_WITHOUT_SYNC_WORD_IN_S: f32 = Self::DURATION_THIRTY_FULL_FRAME_IN_S * 64.0 / 80.0;
+    const DURATION_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S: f32 =
+        Self::DURATION_TWENTY_FOUR_FULL_FRAME_IN_S;
+    const DURATION_TWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S: f32 =
+        Self::DURATION_TWENTY_FIVE_FULL_FRAME_IN_S;
+    const DURATION_THIRTY_WITHOUT_SYNC_WORD_IN_S: f32 = Self::DURATION_THIRTY_FULL_FRAME_IN_S;
 
-    const DURATION_BOUND_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S: (f32, f32) = (Self::DURATION_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S * 0.98, Self::DURATION_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S * 1.02);
-    const DURATION_BOUND_THWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S: (f32, f32) = (Self::DURATION_TWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S * 0.98, Self::DURATION_TWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S * 1.02);
-    const DURATION_BOUND_THIRTY_WITHOUT_SYNC_WORD_IN_S: (f32, f32) = (Self::DURATION_THIRTY_WITHOUT_SYNC_WORD_IN_S * 0.98, Self::DURATION_THIRTY_WITHOUT_SYNC_WORD_IN_S * 1.02);
+    const DURATION_BOUND_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S: (f32, f32) = (
+        Self::DURATION_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S * 0.98,
+        Self::DURATION_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S * 1.02,
+    );
+    const DURATION_BOUND_THWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S: (f32, f32) = (
+        Self::DURATION_TWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S * 0.98,
+        Self::DURATION_TWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S * 1.02,
+    );
+    const DURATION_BOUND_THIRTY_WITHOUT_SYNC_WORD_IN_S: (f32, f32) = (
+        Self::DURATION_THIRTY_WITHOUT_SYNC_WORD_IN_S * 0.98,
+        Self::DURATION_THIRTY_WITHOUT_SYNC_WORD_IN_S * 1.02,
+    );
 
-    fn from_frame_duration_without_syncword_in_s(frames_duration_s: f32) -> FramesPerSecond {
-        if Self::is_in_duration_bounds(frames_duration_s, Self::DURATION_BOUND_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S) {
+    fn from_frame_duration_in_s(frames_duration_s: f32) -> FramesPerSecond {
+        if Self::is_in_duration_bounds(
+            frames_duration_s,
+            Self::DURATION_BOUND_TWENTY_FOUR_WITHOUT_SYNC_WORD_IN_S,
+        ) {
             return FramesPerSecond::TwentyFour;
         }
-        if Self::is_in_duration_bounds(frames_duration_s, Self::DURATION_BOUND_THWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S) {
+        if Self::is_in_duration_bounds(
+            frames_duration_s,
+            Self::DURATION_BOUND_THWENTY_FIVE_WITHOUT_SYNC_WORD_IN_S,
+        ) {
             return FramesPerSecond::TwentyFive;
         }
-        if Self::is_in_duration_bounds(frames_duration_s, Self::DURATION_BOUND_THIRTY_WITHOUT_SYNC_WORD_IN_S) {
+        if Self::is_in_duration_bounds(
+            frames_duration_s,
+            Self::DURATION_BOUND_THIRTY_WITHOUT_SYNC_WORD_IN_S,
+        ) {
             return FramesPerSecond::Thirty;
         }
         FramesPerSecond::Unknown
