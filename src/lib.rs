@@ -6,13 +6,22 @@ use core::fmt::{Debug, Display, Formatter};
 pub mod ltc_decoder;
 pub mod ltc_frame;
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(Eq, Clone, Copy)]
 pub struct TimecodeFrame {
     pub hours: u8,
     pub minutes: u8,
     pub seconds: u8,
     pub frames: u8,
     pub frames_per_second: FramesPerSecond,
+}
+
+impl PartialEq for TimecodeFrame {
+    fn eq(&self, other: &Self) -> bool {
+        self.hours == other.hours
+            && self.minutes == other.minutes
+            && self.seconds == other.seconds
+            && self.frames == other.frames
+    }
 }
 
 impl TimecodeFrame {
@@ -101,7 +110,7 @@ impl TimecodeFrame {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub enum FramesPerSecond {
     Unknown,
     TwentyFour,
@@ -157,5 +166,22 @@ impl FramesPerSecond {
 
     fn is_in_duration_bounds(frames_duration_s: f32, bounds: (f32, f32)) -> bool {
         frames_duration_s > bounds.0 && frames_duration_s < bounds.1
+    }
+}
+
+impl From<String> for TimecodeFrame {
+    fn from(item: String) -> TimecodeFrame {
+        let n = item
+            .split(":")
+            .flat_map(|chunk| chunk.parse::<u8>())
+            .collect::<Vec<_>>();
+        if n.len() != 4 {
+            return TimecodeFrame::new(24, 0, 0, 0, FramesPerSecond::Unknown);
+        }
+        let hours: u8 = n[0];
+        let minutes: u8 = n[1];
+        let seconds: u8 = n[2];
+        let frames: u8 = n[3];
+        TimecodeFrame::new(hours, minutes, seconds, frames, FramesPerSecond::Unknown)
     }
 }
